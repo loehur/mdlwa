@@ -1,3 +1,4 @@
+const fs = require("fs-extra");
 const webhook = require("./config.js");
 
 const {
@@ -9,8 +10,9 @@ const {
   useMultiFileAuthState,
 } = require("@whiskeysockets/baileys");
 
+const auth_dir = "auth_mdl";
 const log = (pino = require("pino"));
-const { session } = { session: "baileys_auth_info" };
+const { session } = { session: auth_dir };
 const { Boom } = require("@hapi/boom");
 const http = require("http");
 const express = require("express");
@@ -49,8 +51,13 @@ let qr;
 let soket;
 let logged_in;
 
+function clear_auth() {
+  fs.emptyDirSync(auth_dir);
+  fs.rmdirSync(auth_dir);
+}
+
 async function connectToWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState("baileys_auth_info");
+  const { state, saveCreds } = await useMultiFileAuthState(auth_dir);
   let { version, isLatest } = await fetchLatestBaileysVersion();
   sock = makeWASocket({
     auth: state,
@@ -81,10 +88,9 @@ async function connectToWhatsApp() {
         );
         sock.logout();
       } else if (reason === DisconnectReason.loggedOut) {
-        console.log(
-          `Device Logged Out, Please Delete ${session} and Scan Again.`
-        );
-        sock.logout();
+        console.log(`Device ${session} Logged Out, Please Scan Again.`);
+        clear_auth();
+        connectToWhatsApp();
       } else if (reason === DisconnectReason.restartRequired) {
         console.log("Restart Required, Restarting...");
         connectToWhatsApp();
@@ -123,7 +129,8 @@ async function connectToWhatsApp() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(resUp[0]),
-        }).then((result) => result.json());
+        });
+        // .then((result) => result.json());
         // .then((data) => console.log(JSON.stringify(data)));
       }
     }

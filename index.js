@@ -173,28 +173,20 @@ app.post("/send-message", async (req, res) => {
     } else {
       numberWA = "62" + number.substring(1) + "@s.whatsapp.net";
       if (isConnected) {
-        const exists = await sock.onWhatsApp(numberWA);
-        if (exists?.jid || (exists && exists[0]?.jid)) {
-          sock
-            .sendMessage(exists.jid || exists[0].jid, { text: pesankirim })
-            .then((result) => {
-              res.status(200).json({
-                status: true,
-                response: result,
-              });
-            })
-            .catch((err) => {
-              res.status(500).json({
-                status: false,
-                response: err,
-              });
+        sock
+          .sendMessage(numberWA, { text: pesankirim })
+          .then((result) => {
+            res.status(200).json({
+              status: true,
+              response: result,
             });
-        } else {
-          res.status(500).json({
-            status: false,
-            response: `Nomor ${number} Invalid ID`,
+          })
+          .catch((err) => {
+            res.status(500).json({
+              status: false,
+              response: err,
+            });
           });
-        }
       } else {
         res.status(500).json({
           status: false,

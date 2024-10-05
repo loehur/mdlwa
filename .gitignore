@@ -2,3 +2,4 @@
 !**/node_modules/@whiskeysockets
 
 baileys_auth_info/*
+config.js

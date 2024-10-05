@@ -1,3 +1,5 @@
+const webhook = require("./config.js");
+
 const {
   default: makeWASocket,
   DisconnectReason,
@@ -115,7 +117,14 @@ async function connectToWhatsApp() {
     if (events["messages.update"]) {
       const resUp = events["messages.update"];
       if (resUp[0].key.fromMe == true) {
-        // console.log(JSON.stringify(resUp[0], undefined, 2));
+        fetch(webhook, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(resUp[0]),
+        }).then((result) => result.json());
+        // .then((data) => console.log(JSON.stringify(data)));
       }
     }
   });

@@ -122,6 +122,7 @@ async function connectToWhatsApp() {
 
     if (events["messages.update"]) {
       const resUp = events["messages.update"];
+      console.log(JSON.stringify(resUp[0]));
       if (resUp[0].key.fromMe == true) {
         fetch(webhook, {
           method: "POST",
@@ -130,8 +131,6 @@ async function connectToWhatsApp() {
           },
           body: JSON.stringify(resUp[0]),
         });
-        // .then((result) => result.json());
-        // .then((data) => console.log(JSON.stringify(data)));
       }
     }
   });

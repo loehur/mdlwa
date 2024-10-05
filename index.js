@@ -45,6 +45,7 @@ const store = makeInMemoryStore({
 let sock;
 let qr;
 let soket;
+let logged_in;
 
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState("baileys_auth_info");
@@ -92,20 +93,17 @@ async function connectToWhatsApp() {
         sock.end(`Unknown DisconnectReason: ${reason}|${lastDisconnect.error}`);
       }
     } else if (connection === "open") {
+      logged_in = true;
       updateQR("connected");
       console.log("Connection Ready!");
       return;
     }
+
     if (update.qr) {
       qr = update.qr;
       updateQR("qr");
     } else if ((qr = undefined)) {
       updateQR("loading");
-    } else {
-      if (update.connection === "open") {
-        updateQR("qrscanned");
-        return;
-      }
     }
   });
 
@@ -125,10 +123,14 @@ async function connectToWhatsApp() {
 
 io.on("connection", async (socket) => {
   soket = socket;
-  if (isConnected) {
+  if (logged_in) {
     updateQR("connected");
-  } else if (qr) {
-    updateQR("qr");
+  } else {
+    if (qr) {
+      updateQR("qr");
+    } else {
+      updateQR("loading");
+    }
   }
 });
 
@@ -147,10 +149,6 @@ const updateQR = (data) => {
     case "connected":
       soket?.emit("qrstatus", "./assets/check.svg");
       soket?.emit("log", "WhatsApp connected!");
-      break;
-    case "qrscanned":
-      soket?.emit("qrstatus", "./assets/check.svg");
-      soket?.emit("log", "QR Code has been scanned!");
       break;
     case "loading":
       soket?.emit("qrstatus", "./assets/loader.gif");
@@ -174,7 +172,6 @@ app.post("/send-message", async (req, res) => {
       });
     } else {
       numberWA = "62" + number.substring(1) + "@s.whatsapp.net";
-      console.log(await sock.onWhatsApp(numberWA));
       if (isConnected) {
         const exists = await sock.onWhatsApp(numberWA);
         if (exists?.jid || (exists && exists[0]?.jid)) {

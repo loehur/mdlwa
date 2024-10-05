@@ -31,6 +31,13 @@ const io = require("socket.io")(server);
 const port = process.env.PORT || 8000;
 const qrcode = require("qrcode");
 
+app.use("/assets", express.static(__dirname + "/client/assets"));
+app.get("/", (req, res) => {
+  res.sendFile("./client/server.html", {
+    root: __dirname,
+  });
+});
+
 const store = makeInMemoryStore({
   logger: pino().child({ level: "silent", stream: "store" }),
 });
@@ -43,7 +50,6 @@ async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState("baileys_auth_info");
   let { version, isLatest } = await fetchLatestBaileysVersion();
   sock = makeWASocket({
-    printQRInTerminal: true,
     auth: state,
     logger: log({ level: "silent" }),
     version,
@@ -86,6 +92,7 @@ async function connectToWhatsApp() {
         sock.end(`Unknown DisconnectReason: ${reason}|${lastDisconnect.error}`);
       }
     } else if (connection === "open") {
+      updateQR("connected");
       console.log("Connection Ready!");
       return;
     }

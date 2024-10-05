@@ -117,7 +117,7 @@ async function connectToWhatsApp() {
     if (events["messages.update"]) {
       const resUp = events["messages.update"];
       if (resUp[0].key.fromMe == true) {
-        console.log(JSON.stringify(resUp[0], undefined, 2));
+        // console.log(JSON.stringify(resUp[0], undefined, 2));
       }
     }
   });

@@ -34,14 +34,6 @@ const server = require("http").createServer(app);
 const port = 8033;
 const qrcode = require("qrcode");
 
-app.use("/assets", express.static(__dirname + "/client/assets"));
-app.use("/config", express.static(__dirname));
-app.get("/", (req, res) => {
-  res.sendFile("./client/index.html", {
-    root: __dirname,
-  });
-});
-
 const store = makeInMemoryStore({
   logger: pino().child({ level: "silent", stream: "store" }),
 });
@@ -144,55 +136,33 @@ const isConnected = () => {
   return sock.user;
 };
 
-var WebSocketServer = require("websocket").server;
-wsServer = new WebSocketServer({
-  httpServer: server,
-  autoAcceptConnections: false,
-});
-
-function originIsAllowed(origin) {
-  return true;
-}
-
-wsServer.on("request", function (request) {
-  if (!originIsAllowed(request.origin)) {
-    request.reject();
-    console.log(
-      new Date() + " Connection from origin " + request.origin + " rejected."
-    );
-    return;
-  }
-
-  var connection = request.accept("echo-protocol", request.origin);
-  connection.on("message", function (message) {
-    if (message.type === "utf8") {
-      data = {};
-      if (logged_in) {
-        data = {
-          status: logged_in,
-        };
-        connection.sendUTF(JSON.stringify(data));
-      } else {
-        if (qr_status) {
-          qrcode.toDataURL(qr, (err, url) => {
-            data = {
-              status: logged_in,
-              qr_ready: qr_status,
-              qr_string: url,
-            };
-            connection.sendUTF(JSON.stringify(data));
-          });
-        } else {
-          data = {
-            status: logged_in,
-            qr_ready: false,
+app.post("/cek-status", async (req, res) => {
+  let result;
+  try {
+    if (logged_in) {
+      result = {
+        status: logged_in,
+      };
+      res.status(200).json(result);
+    } else {
+      if (qr_status) {
+        qrcode.toDataURL(qr, (err, url) => {
+          result = {
+            qr_ready: qr_status,
+            qr_string: url,
           };
-          connection.sendUTF(JSON.stringify(data));
-        }
+          res.status(200).json(result);
+        });
+      } else {
+        result = {
+          qr_ready: false,
+        };
+        res.status(200).json(result);
       }
-    } else if (message.type === "binary") {
     }
-  });
+  } catch (err) {
+    res.status(500).send(err);
+  }
 });
 
 app.post("/send-message", async (req, res) => {

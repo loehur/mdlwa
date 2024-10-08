@@ -34,6 +34,13 @@ const server = require("http").createServer(app);
 const port = 8033;
 const qrcode = require("qrcode");
 
+app.use("/assets", express.static(__dirname + "/client/assets"));
+app.get("/", (req, res) => {
+  res.sendFile("./client/index.html", {
+    root: __dirname,
+  });
+});
+
 const store = makeInMemoryStore({
   logger: pino().child({ level: "silent", stream: "store" }),
 });
@@ -184,11 +191,6 @@ wsServer.on("request", function (request) {
       }
     } else if (message.type === "binary") {
     }
-  });
-  connection.on("close", function (reasonCode, description) {
-    console.log(
-      new Date() + " Peer " + connection.remoteAddress + " disconnected."
-    );
   });
 });
 

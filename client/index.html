@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <title>WA API</title>
-    <link rel="icon" type="image/x-icon" href="assets/wa.png" />
+    <link rel="icon" type="image/x-icon" href="./assets/wa.png" />
     <meta name="description" content="WhatsApp Api otomatis." />
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -96,12 +96,13 @@
   </body>
 </html>
 
+<script src="config/config.js"></script>
 <script>
-  var client = new WebSocket("ws://localhost:8033/", "echo-protocol");
+  var client = new WebSocket("ws://" + ip + ":8033/", "echo-protocol");
   const qrcode = document.getElementById("qrcode");
 
   function ws_down() {
-    qrcode.setAttribute("src", "assets/cross.svg");
+    qrcode.setAttribute("src", "./assets/cross.svg");
     qrcode.setAttribute("alt", "loading");
   }
 

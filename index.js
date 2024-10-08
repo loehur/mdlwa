@@ -35,6 +35,7 @@ const port = 8033;
 const qrcode = require("qrcode");
 
 app.use("/assets", express.static(__dirname + "/client/assets"));
+app.use("/config", express.static(__dirname));
 app.get("/", (req, res) => {
   res.sendFile("./client/index.html", {
     root: __dirname,

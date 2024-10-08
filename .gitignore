@@ -3,3 +3,5 @@
 
 auth_mdl
 config.js
+package-lock.json
+package.json

@@ -75,7 +75,8 @@ async function connectToWhatsApp() {
         console.log(
           `Bad Session File, Please Delete ${session} and Scan Again`
         );
-        sock.logout();
+        clear_auth();
+        connectToWhatsApp();
       } else if (reason === DisconnectReason.connectionClosed) {
         console.log("Connection closed, reconnecting....");
         connectToWhatsApp();
@@ -86,7 +87,8 @@ async function connectToWhatsApp() {
         console.log(
           "Connection Replaced, Another New Session Opened, Please Close Current Session First"
         );
-        sock.logout();
+        clear_auth();
+        connectToWhatsApp();
       } else if (reason === DisconnectReason.loggedOut) {
         console.log(`Device ${session} Logged Out, Please Scan Again.`);
         clear_auth();

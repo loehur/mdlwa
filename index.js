@@ -31,16 +31,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const server = require("http").createServer(app);
-const io = require("socket.io")(server);
-const port = process.env.PORT || 8033;
+const port = 8033;
 const qrcode = require("qrcode");
-
-app.use("/assets", express.static(__dirname + "/client/assets"));
-app.get("/", (req, res) => {
-  res.sendFile("./client/server.html", {
-    root: __dirname,
-  });
-});
 
 const store = makeInMemoryStore({
   logger: pino().child({ level: "silent", stream: "store" }),
@@ -48,7 +40,7 @@ const store = makeInMemoryStore({
 
 let sock;
 let qr;
-let soket;
+let qr_status;
 let logged_in;
 
 function clear_auth() {
@@ -70,6 +62,7 @@ async function connectToWhatsApp() {
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === "close") {
+      logged_in = false;
       let reason = new Boom(lastDisconnect.error).output.statusCode;
       if (reason === DisconnectReason.badSession) {
         console.log(
@@ -104,16 +97,16 @@ async function connectToWhatsApp() {
       }
     } else if (connection === "open") {
       logged_in = true;
-      updateQR("connected");
       console.log("Connection Ready!");
       return;
     }
 
     if (update.qr) {
       qr = update.qr;
-      updateQR("qr");
+      qr_status = true;
     } else if ((qr = undefined)) {
-      updateQR("loading");
+      logged_in = false;
+      qr_status = false;
     }
   });
 
@@ -139,43 +132,65 @@ async function connectToWhatsApp() {
   });
 }
 
-io.on("connection", async (socket) => {
-  soket = socket;
-  if (logged_in) {
-    updateQR("connected");
-  } else {
-    if (qr) {
-      updateQR("qr");
-    } else {
-      updateQR("loading");
-    }
-  }
-});
-
 const isConnected = () => {
   return sock.user;
 };
 
-const updateQR = (data) => {
-  switch (data) {
-    case "qr":
-      qrcode.toDataURL(qr, (err, url) => {
-        soket?.emit("qr", url);
-        soket?.emit("log", "QR Code received, please scan!");
-      });
-      break;
-    case "connected":
-      soket?.emit("qrstatus", "./assets/check.svg");
-      soket?.emit("log", "WhatsApp connected!");
-      break;
-    case "loading":
-      soket?.emit("qrstatus", "./assets/loader.gif");
-      soket?.emit("log", "Registering QR Code , please wait!");
-      break;
-    default:
-      break;
+var WebSocketServer = require("websocket").server;
+wsServer = new WebSocketServer({
+  httpServer: server,
+  autoAcceptConnections: false,
+});
+
+function originIsAllowed(origin) {
+  return true;
+}
+
+wsServer.on("request", function (request) {
+  if (!originIsAllowed(request.origin)) {
+    request.reject();
+    console.log(
+      new Date() + " Connection from origin " + request.origin + " rejected."
+    );
+    return;
   }
-};
+
+  var connection = request.accept("echo-protocol", request.origin);
+  connection.on("message", function (message) {
+    if (message.type === "utf8") {
+      data = {};
+      if (logged_in) {
+        data = {
+          status: logged_in,
+        };
+        connection.sendUTF(JSON.stringify(data));
+      } else {
+        if (qr_status) {
+          qrcode.toDataURL(qr, (err, url) => {
+            data = {
+              status: logged_in,
+              qr_ready: qr_status,
+              qr_string: url,
+            };
+            connection.sendUTF(JSON.stringify(data));
+          });
+        } else {
+          data = {
+            status: logged_in,
+            qr_ready: false,
+          };
+          connection.sendUTF(JSON.stringify(data));
+        }
+      }
+    } else if (message.type === "binary") {
+    }
+  });
+  connection.on("close", function (reasonCode, description) {
+    console.log(
+      new Date() + " Peer " + connection.remoteAddress + " disconnected."
+    );
+  });
+});
 
 app.post("/send-message", async (req, res) => {
   const pesankirim = req.body.message;
